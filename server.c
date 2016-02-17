@@ -37,8 +37,8 @@ int main()
         exit(-1);
     }
 
-    while(1)
-    {
+//    while(1)
+//    {
         if(( len = msgrcv(msqid, (struct msgbuf *) &msg_buf, MAX_MSG_LEN, 0, 0) < 0))
         {
             printf("Can\'t receive message from queue\n");
@@ -55,6 +55,6 @@ int main()
         close(file);
 
 
-    }
+//    }
     return 0;
 }
