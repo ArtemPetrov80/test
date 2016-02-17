@@ -8,7 +8,7 @@
 
 #define FILE_FOR_MSG "/home/box/message.txt"
 #define KEY_FILE "/tmp/msg.temp"
-#define MAX_MSG_LEN 80
+#define MAX_MSG_LEN 81
 
 
 typedef struct Msgbuf
@@ -25,6 +25,8 @@ int main()
 
     Msgbuf msg_buf;
 
+    printf("Enter\n");
+
     if((key = ftok(KEY_FILE,0)) < 0)
     {
         printf("Can\'t generate key\n");
@@ -37,24 +39,22 @@ int main()
         exit(-1);
     }
 
-//    while(1)
-//    {
-        if(( len = msgrcv(msqid, (struct msgbuf *) &msg_buf, MAX_MSG_LEN, 0, 0) < 0))
-        {
-            printf("Can\'t receive message from queue\n");
-            exit(-1);
-        }
+    printf("Wait msg\n");
+    if(( len = msgrcv(msqid, (struct msgbuf *) &msg_buf, MAX_MSG_LEN, 0, 0) < 0))
+    {
+        printf("Can\'t receive message from queue\n");
+        exit(-1);
+    }
 
-        printf("message type = %ld, info = %s\n", msg_buf.mtype, msg_buf.mtext);
+    printf("message type = %ld, info = %s\n", msg_buf.mtype, msg_buf.mtext);
 
-        int file = open(FILE_FOR_MSG, O_RDWR|O_CREAT, 0666);
-        if (!file)
-            return;
+    int file = open(FILE_FOR_MSG, O_RDWR|O_CREAT, 0666);
+    if (!file)
+        return;
 
-        write(file, msg_buf.mtext, strlen(msg_buf.mtext));
-        close(file);
+    write(file, msg_buf.mtext, strlen(msg_buf.mtext));
+    close(file);
 
 
-//    }
     return 0;
 }
