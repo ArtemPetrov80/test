@@ -1,52 +1,47 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/stat.h>
 #include <sys/types.h>
-#include <errno.h>
-#include <mqueue.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#define FILE_FOR_MSG "/home/box/message.txt"
-#define QUEUE_NAME "/test.mq"
-#define MAX_SIZE 1024
+#define SHMSZ     1024*1024 *2
+#define KEY "/tmp/mem.temp"
 
-
-int main(int argc, char **argv)
+main()
 {
-    mqd_t mq;
-    struct mq_attr attr;
-    char buffer[MAX_SIZE + 1];
-    int must_stop = 0;
+    char c;
+    int shmid;
+    key_t key;
+    char *shm, *s;
 
-    /* initialize the queue attributes */
-    attr.mq_flags = 0;
-    attr.mq_maxmsg = 10;
-    attr.mq_msgsize = MAX_SIZE;
-    attr.mq_curmsgs = 0;
+    /*
+     */
+    key = ftok(KEY, 1);;
 
-    /* create the message queue */
-    mq = mq_open(QUEUE_NAME, O_CREAT | O_RDONLY, 0644, &attr);
-//    CHECK((mqd_t)-1 != mq);
+    /*
+     * Create the segment.
+     */
+    if ((shmid = shmget(key, SHMSZ, IPC_CREAT | 0666)) < 0) {
+        perror("shmget");
+        exit(1);
+    }
 
-    ssize_t bytes_read;
+    /*
+     * Now we attach the segment to our data space.
+     */
+    if ((shm = shmat(shmid, NULL, 0)) == (char *) -1) {
+        perror("shmat");
+        exit(1);
+    }
 
-    /* receive the message */
-    bytes_read = mq_receive(mq, buffer, MAX_SIZE, NULL);
-//    CHECK(bytes_read >= 0);
+    /*
+     * Now put some things into the memory for the
+     * other process to read.
+     */
+    s = shm;
 
-    buffer[bytes_read] = '\0';
-    printf("Received: %s\n", buffer);
+    s[0] = s[1024*1024] = (char)42;
 
-    /* cleanup */
-    mq_close(mq);
-    mq_unlink(QUEUE_NAME);
-
-    int file = open(FILE_FOR_MSG, O_RDWR|O_CREAT, 0666);
-    if (!file)
-        return;
-
-    write(file, buffer, strlen(buffer));
-    close(file);
-
-    return 0;
+    exit(0);
 }

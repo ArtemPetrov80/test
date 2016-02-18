@@ -9,7 +9,7 @@
 int main()
 {
     sem_t * sem_id;
-    sem_id = sem_open("/test.sem", O_CREAT, 0600, 0);
+    sem_id = sem_open("/test.sem", O_CREAT, 0600, 66);
     if(sem_id == SEM_FAILED) {
         perror("sem_open");
         return;
