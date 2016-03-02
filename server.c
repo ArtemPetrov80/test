@@ -160,8 +160,9 @@ void send_response(int client_socket, const char * path)
 
 		while( ( nread = fread(buf, 1, sizeof(buf), file) ) > 0 )
 		{
-//			send(client_socket, buf, strlen(buf)-1, MSG_NOSIGNAL);
-//		}
+			send(client_socket, buf, strlen(buf)-1, MSG_NOSIGNAL);
+		}
+/*
 			ssize_t nbyte = nread;
 			ssize_t nwritten = 0, n;
 			do
@@ -177,6 +178,7 @@ void send_response(int client_socket, const char * path)
 			} while (nwritten < nbyte);
 			fclose(full_path);
 		}
+*/
 	}
 }
 
