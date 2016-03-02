@@ -152,7 +152,7 @@ void send_response(int client_socket, const char * path)
 		int nread;
 		printf("200 - OK\n");
 
-		snprintf(buf, sizeof(buf), HTTP_HEADER, "200 OK", 0);
+		snprintf(buf, sizeof(buf), HTTP_HEADER, "200 OK", statbuf.st_size);
 		send(client_socket, buf, strlen(buf), MSG_NOSIGNAL);
 
 		memset(buf, 0, strlen(buf));
