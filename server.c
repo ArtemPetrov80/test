@@ -131,12 +131,13 @@ void send_response(int client_socket, const char * path)
 	char buf[1024] = {0};
 	FILE * file;
 	char full_path[1024] = {0};
+	struct stat statbuf;
 
 	strncpy(full_path, g_args.directory, strlen(g_args.directory)); // TODO - перенести в функцию
 	strncat(full_path, path, strlen(path));
 	printf("full_path : %s\n", full_path);
 
-	if ( ( file = fopen(full_path, "rb") ) == NULL ) // TODO - передача файла
+	if ( ( stat(full_path, &statbuf) == -1 ) || ( ( file = fopen(full_path, "rb") ) == NULL ) ) // TODO - передача файла
 	{
 		printf("404 - Not Found\n");
 
