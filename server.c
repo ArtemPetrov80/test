@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <pthread.h>
+#include <errno.h>
 
 #define MAX_MESSAGE_LEN 100
 
@@ -156,9 +157,25 @@ void send_response(int client_socket, const char * path)
 		send(client_socket, buf, strlen(buf), MSG_NOSIGNAL);
 
 		memset(buf, 0, strlen(buf));
+
 		while( ( nread = fread(buf, 1, sizeof(buf), file) ) > 0 )
 		{
-			send(client_socket, buf, strlen(buf)-1, MSG_NOSIGNAL);
+//			send(client_socket, buf, strlen(buf)-1, MSG_NOSIGNAL);
+//		}
+			ssize_t nbyte = nread;
+			ssize_t nwritten = 0, n;
+			do
+			{
+				if ((n = write(client_socket, &((const char *)buf)[nwritten], nbyte - nwritten)) == -1)
+				{
+					if (errno == EINTR)
+						continue;
+					else
+						break;
+				}
+				nwritten += n;
+			} while (nwritten < nbyte);
+			fclose(full_path);
 		}
 	}
 }
