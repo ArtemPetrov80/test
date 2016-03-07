@@ -78,16 +78,16 @@ void process_option(int argc, char *argv[])
 					fprintf(stderr, "Invalid ip address: %s\n", optarg);
 					exit(EXIT_FAILURE);
 				}
-//				printf("Option h = %s\n", optarg);
+				printf("Option h = %s\n", optarg);
 				break;
 
 			case 'p':
 				g_args.port = atoi(optarg);
-//				printf("Option p(port) = %d\n", g_args.port);
+				printf("Option p(port) = %d\n", g_args.port);
 				break;
 			case 'd':
 				strncpy(g_args.directory, optarg, sizeof(g_args.directory));
-//				printf("Option d = %s\n", g_args.directory);
+				printf("Option d = %s\n", g_args.directory);
 				if(stat(g_args.directory, &sb) == -1 )
 				{
 					fprintf(stderr, "Directory %s does not exist!\n", g_args.directory);
@@ -105,26 +105,26 @@ void process_option(int argc, char *argv[])
 void process_http_request(int client_socket, const char * msg)
 {
 	http_request request;
-//	printf("Recived : %s\n", msg);
+	printf("Recived : %s\n", msg);
 	parse_http_request(msg, request);
 
 	if(!strcmp(request.method, "GET"))
 	{
-//		printf("Method %s\n", request.method);
+		printf("Method %s\n", request.method);
 		if( is_html_file( (const char *) (request.url) ) )
 		{
-//			puts("TEXT FILE\n");
+			puts("TEXT FILE\n");
 			send_response(client_socket, request.url);
 		}
 		else
 		{
-//			printf("This MIME-type is not supported!\n");
+			printf("This MIME-type is not supported!\n");
 			return;
 		}
 	}
 	else
 	{
-//		printf("Method %s is not supported!\n", request.method);
+		printf("Method %s is not supported!\n", request.method);
 		return;
 	}
 }
@@ -138,11 +138,14 @@ void send_response(int client_socket, const char * path)
 
 	strncpy(full_path, g_args.directory, strlen(g_args.directory)); // TODO - перенести в функцию
 	strncat(full_path, path, strlen(path));
-//	printf("full_path : %s\n", full_path);
+	printf("full_path : %s\n", full_path);
+	char * first_param = strstr(full_path, "?");
+	if (first_param)
+		*first_param = '\0';
 
 	if ( ( stat(full_path, &statbuf) == -1 ) || ( ( file = fopen(full_path, "rb") ) == NULL ) ) // TODO - передача файла
 	{
-//		printf("404 - Not Found\n");
+		printf("404 - Not Found\n");
 
 		snprintf(buf, sizeof(buf), HTTP_HEADER, "404 Not Found", strlen(HTML_NOTFOUND));
 		send(client_socket, buf, strlen(buf), MSG_NOSIGNAL);
@@ -153,7 +156,7 @@ void send_response(int client_socket, const char * path)
 	else
 	{
 		int nread = 0;
-//		printf("200 - OK\n");
+		printf("200 - OK\n");
 
 		snprintf(buf, sizeof(buf), HTTP_HEADER, "200 OK", statbuf.st_size);
 		send(client_socket, buf, strlen(buf), MSG_NOSIGNAL);
@@ -164,7 +167,7 @@ void send_response(int client_socket, const char * path)
 		{
 			ssize_t nbyte = nread;
 			ssize_t nwritten = 0, n;
-//printf("READ = %d\n", nread);
+printf("READ = %d\n", nread);
 			do
 			{
 				if ((n = write(client_socket, &((const char *)buf)[nwritten], nbyte - nwritten)) == -1)
@@ -176,23 +179,18 @@ void send_response(int client_socket, const char * path)
 				}
 				nwritten += n;
 
-//printf("WRITE = %d\n", nwritten);
+printf("WRITE = %d\n", nwritten);
 
 			} while (nwritten < nbyte);
 		}
-//		printf("full_path = %s\n", full_path);
+		printf("full_path = %s\n", full_path);
 //		fclose(full_path);
 	}
 }
 
 bool is_html_file(const char * path)
 {
-	size_t len = strlen(path);
-	size_t last3 = len - 3;
-	size_t last4 = len - 4;
-	size_t last5 = len - 5;
-
-	if( !strncmp(&path[last3], "htm", 3) || !strcmp(&path[last4], "html") || !strcmp(&path[last5], "htmls") )
+	if( strstr(path, "htm") || strstr(path, "html") || strstr(path, "htmls") )
 		return true;
 
 	return false;
@@ -202,7 +200,7 @@ void process_client(void * client_sock)
 {
 	char buf[MAX_MESSAGE_LEN] = {0};
 	int client_socket = *((int*)client_sock);
-//	printf("Client connected! Client socket : %d\n", client_socket);
+	printf("Client connected! Client socket : %d\n", client_socket);
 
 	if (recv(client_socket, buf, sizeof(buf)-1, MSG_NOSIGNAL) == -1)
 		perror("recv");
@@ -215,7 +213,7 @@ void process_client(void * client_sock)
 
 void parse_http_request(char * msg, http_request * request)
 {
-//	printf("PARSE msg : %s\n", msg);
+	printf("PARSE msg : %s\n", msg);
 
 	int token_number = 1;
 	char * current_param;
@@ -223,7 +221,7 @@ void parse_http_request(char * msg, http_request * request)
 	char *token = strtok(msg, " ");
 	while (token)
 	{
-//		printf("%s\n", token);
+		printf("%s\n", token);
 		switch(token_number)
 		{
 			case 1:
@@ -259,7 +257,7 @@ int main(int argc, char *argv[])
 		process_option(argc, argv);
 
 	int main_socket = socket(AF_INET, SOCK_STREAM, 0);
-//	printf("Sever started! Main socket : %d\n", main_socket);
+	printf("Sever started! Main socket : %d\n", main_socket);
 
 	struct sockaddr_in serv_addr;
 	serv_addr.sin_family = AF_INET;
