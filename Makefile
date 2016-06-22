@@ -1,4 +1,4 @@
-shell: solution.c
+shell: /home/box/solution.c
 	gcc -o /home/box/shell /home/box/solution.c
 
 clean:
