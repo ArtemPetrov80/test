@@ -1,12 +1,12 @@
-#include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <iostream>
 #include <vector>
 #include <sstream>
 #include <iterator>
-#include <sys/types.h> 
-#include <sys/stat.h> 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <cstring>
 
@@ -21,43 +21,57 @@ struct Command
 
 void aopen(std::vector<Command> comm)
 {
+	pid_t childID;
+	int status;
 
 	if(comm.size() == 0)
 		return;
+
 	else if (comm.size() != 1)
 	{
-	Command comm1 = comm[0];
-	comm.erase(comm.begin());
-	std::cout << "aopen(), comm1 = " << comm1.command << ", arg1 = " << comm1.arg << std::endl;
+		Command comm1 = comm[0];
+		comm.erase(comm.begin());
+		std::cout << "aopen(), comm1 = " << comm1.command << ", arg1 = " << comm1.arg << std::endl;
 
-	int fd[2];
-		pipe(fd);  /*организован канал*/
+		int fd[2];
+			pipe(fd);  /*организован канал*/
 
-	if (fork())
-	{
-		std::cout << "PARENT, comm1 = " << comm1.command <<std::endl;
+		if ((childID = fork()) == -1)
+		{
+			perror("fork error");
+			exit(EXIT_FAILURE);
+		}
+		else if (childID != 0)
+		{
+			std::cout << "PARENT, comm1 = " << comm1.command <<std::endl;
 
-		/*процесс-родитель*/
-		dup2(fd[1], 1); /* отождествили стандартный вывод с файловым дескриптором канала, предназначенным для записи */
-		close(fd[1]);   /* закрыли файловый дескриптор канала, предназначенный для записи */
+			dup2(fd[1], 1); /* отождествили стандартный вывод с файловым дескриптором канала, предназначенным для записи */
+			close(fd[1]);   /* закрыли файловый дескриптор канала, предназначенный для записи */
+			close(fd[0]);   /* закрыли файловый дескриптор канала, предназначенный для чтения */
+
+			if(comm1.arg.empty())
+				execlp(comm1.command.c_str(), comm1.command.c_str(), 0);
+			else
+				execlp(comm1.command.c_str(), comm1.command.c_str(), comm1.arg.c_str(), 0);
+
+			int endID = waitpid(childID, &status, WNOHANG|WUNTRACED);
+			if (endID == -1)
+			{
+				perror("waitpid error");
+				exit(EXIT_FAILURE);
+			}
+
+		}
+
+		std::cout << "CHILD\n";
+		dup2(fd[0], 0); /* отождествили стандартный ввод с файловым дескриптором канала,   предназначенным для чтения*/
 		close(fd[0]);   /* закрыли файловый дескриптор канала, предназначенный для чтения */
+		close(fd[1]);
 
-		if(comm1.arg.empty())
-			execlp(comm1.command.c_str(), comm1.command.c_str(), 0);
-		else
-			execlp(comm1.command.c_str(), comm1.command.c_str(), comm1.arg.c_str(), 0);
-	}
-
-	std::cout << "CHILD\n";
-        /*процесс-потомок*/
-	dup2(fd[0], 0); /* отождествили стандартный ввод с файловым дескриптором канала,   предназначенным для чтения*/
-	close(fd[0]);   /* закрыли файловый дескриптор канала, предназначенный для чтения */
-	close(fd[1]);
-
-	if(comm.size() > 1)
-	{
-		aopen(comm);
-	}
+		if(comm.size() > 1)
+		{
+			aopen(comm);
+		}
 	}
 
 	int result_file = open(RESULT_PATH, O_RDWR|O_CREAT, 0666);
