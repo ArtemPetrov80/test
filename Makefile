@@ -1,5 +1,5 @@
-shell: /home/box/solution.c
-	gcc -o /home/box/shell /home/box/solution.c
+work: /home/box/work.cpp
+	g++ -o /home/box/work /home/box/work.cpp
 
 clean:
-	rm /home/box/shell
+	rm /home/box/work
