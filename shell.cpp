@@ -26,8 +26,7 @@ void aopen(std::vector<Command> comm)
 
 	if(comm.size() == 0)
 		return;
-
-	else if (comm.size() != 1)
+	else if (comm.size() > 1)
 	{
 		Command comm1 = comm[0];
 		comm.erase(comm.begin());
@@ -43,16 +42,11 @@ void aopen(std::vector<Command> comm)
 		}
 		else if (childID != 0)
 		{
-			std::cout << "PARENT, comm1 = " << comm1.command <<std::endl;
+			std::cout << "PARENT, comm = " << comm1.command <<std::endl;
 
 			dup2(fd[1], 1); /* отождествили стандартный вывод с файловым дескриптором канала, предназначенным для записи */
 			close(fd[1]);   /* закрыли файловый дескриптор канала, предназначенный для записи */
 			close(fd[0]);   /* закрыли файловый дескриптор канала, предназначенный для чтения */
-
-			if(comm1.arg.empty())
-				execlp(comm1.command.c_str(), comm1.command.c_str(), 0);
-			else
-				execlp(comm1.command.c_str(), comm1.command.c_str(), comm1.arg.c_str(), 0);
 
 			int endID = waitpid(childID, &status, WNOHANG|WUNTRACED);
 			if (endID == -1)
@@ -61,17 +55,17 @@ void aopen(std::vector<Command> comm)
 				exit(EXIT_FAILURE);
 			}
 
+			if(comm1.arg.empty())
+				execlp(comm1.command.c_str(), comm1.command.c_str(), 0);
+			else
+				execlp(comm1.command.c_str(), comm1.command.c_str(), comm1.arg.c_str(), 0);
 		}
 
-		std::cout << "CHILD\n";
 		dup2(fd[0], 0); /* отождествили стандартный ввод с файловым дескриптором канала,   предназначенным для чтения*/
 		close(fd[0]);   /* закрыли файловый дескриптор канала, предназначенный для чтения */
 		close(fd[1]);
 
-		if(comm.size() > 1)
-		{
-			aopen(comm);
-		}
+		aopen(comm);
 	}
 
 	int result_file = open(RESULT_PATH, O_RDWR|O_CREAT, 0666);
@@ -80,7 +74,6 @@ void aopen(std::vector<Command> comm)
 
 	dup2(result_file, 1);
 	Command comm2 = comm[0];
-//	std::cout << "aopen(), comm2 = " << comm2.command << ", arg2 = " << comm2.arg << std::endl;
 	comm.erase(comm.begin());
 
 	if(comm2.arg.empty())
@@ -88,7 +81,7 @@ void aopen(std::vector<Command> comm)
 	else
 		execlp(comm2.command.c_str(), comm2.command.c_str(), comm2.arg.c_str(), 0);
 
-//		close(result_file);
+		close(result_file);
 
 }
 
@@ -107,8 +100,6 @@ int main(int argc, char **argv)
 	auto last = tokens.end();
 	for (auto it = first; it != last; ++it)
 	{
-		std::cout << *it << std::endl;
-
 		if(*it != "|")
 		{
 			if(isArg)
@@ -130,9 +121,11 @@ int main(int argc, char **argv)
 	}
 
 	commands.push_back( tmp );
+/*
 	for (Command i : commands)
 	{
 		std::cout << "Command:" << i.command << ", arg: " << i.arg << '\n';
 	}
+*/
 	aopen(commands);
 }
