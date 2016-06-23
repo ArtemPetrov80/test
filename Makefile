@@ -1,5 +1,2 @@
-work: /home/box/work.cpp
-	g++ -o /home/box/work /home/box/work.cpp
-
-clean:
-	rm /home/box/work
+all:
+	g++ -std=c++11 -o /home/box/shell /home/box/shell.cpp
