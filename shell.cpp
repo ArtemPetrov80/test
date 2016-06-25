@@ -15,22 +15,37 @@
 
 struct Command
 {
-	std::string command;
+	std::string cmd;
 	std::string arg;
 };
 
-void aopen(std::vector<Command> comm)
+void execCmd(Command& cmd)
+{
+	std::cout << "execCmd: cmd = " << cmd.cmd << " " << cmd.arg << std::endl;
+	if(cmd.arg.empty())
+	{
+		execlp(cmd.cmd.c_str(), cmd.cmd.c_str(), 0);
+	}
+	else
+	{
+		execlp(cmd.cmd.c_str(), cmd.cmd.c_str(), cmd.arg.c_str(), 0);
+	}
+}
+
+void handleCmdChain(std::vector<Command> &cmdChain)
 {
 	pid_t childID;
 	int status;
 
-	if(comm.size() == 0)
-		return;
-	else if (comm.size() > 1)
+	if(cmdChain.size() == 0)
 	{
-		Command comm1 = comm[0];
-		comm.erase(comm.begin());
-		std::cout << "aopen(), comm1 = " << comm1.command << ", arg1 = " << comm1.arg << std::endl;
+		return;
+	}
+	else if (cmdChain.size() > 1)
+	{
+		Command comm1 = cmdChain[0];
+		cmdChain.erase(cmdChain.begin());
+		std::cout << "handleCmdChain(), comm1 = " << comm1.cmd << ", arg1 = " << comm1.arg << std::endl;
 
 		int fd[2];
 			pipe(fd);  /*организован канал*/
@@ -42,7 +57,7 @@ void aopen(std::vector<Command> comm)
 		}
 		else if (childID != 0)
 		{
-			std::cout << "PARENT, comm = " << comm1.command <<std::endl;
+			std::cout << "PARENT, comm = " << comm1.cmd <<std::endl;
 
 			dup2(fd[1], 1); /* отождествили стандартный вывод с файловым дескриптором канала, предназначенным для записи */
 			close(fd[1]);   /* закрыли файловый дескриптор канала, предназначенный для записи */
@@ -54,35 +69,29 @@ void aopen(std::vector<Command> comm)
 				perror("waitpid error");
 				exit(EXIT_FAILURE);
 			}
-
-			if(comm1.arg.empty())
-				execlp(comm1.command.c_str(), comm1.command.c_str(), 0);
-			else
-				execlp(comm1.command.c_str(), comm1.command.c_str(), comm1.arg.c_str(), 0);
+			execCmd(comm1);
 		}
 
 		dup2(fd[0], 0); /* отождествили стандартный ввод с файловым дескриптором канала,   предназначенным для чтения*/
 		close(fd[0]);   /* закрыли файловый дескриптор канала, предназначенный для чтения */
 		close(fd[1]);
 
-		aopen(comm);
+		handleCmdChain(cmdChain);
 	}
-
-	int result_file = open(RESULT_PATH, O_RDWR|O_CREAT, 0666);
-	if(!result_file)
-		exit(0);
-
-	dup2(result_file, 1);
-	Command comm2 = comm[0];
-	comm.erase(comm.begin());
-
-	if(comm2.arg.empty())
-		execlp(comm2.command.c_str(), comm2.command.c_str(), 0);
 	else
-		execlp(comm2.command.c_str(), comm2.command.c_str(), comm2.arg.c_str(), 0);
+	{
+		int result_file = open(RESULT_PATH, O_RDWR|O_CREAT, 0666);
+		if(!result_file)
+			exit(0);
+
+		dup2(result_file, 1);
+		Command comm2 = cmdChain[0];
+		cmdChain.erase(cmdChain.begin());
+
+		execCmd(comm2);
 
 		close(result_file);
-
+	}
 }
 
 int main(int argc, char **argv)
@@ -109,7 +118,7 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				tmp.command = *it;
+				tmp.cmd = *it;
 				isArg = true;
 			}
 		}
@@ -124,8 +133,8 @@ int main(int argc, char **argv)
 /*
 	for (Command i : commands)
 	{
-		std::cout << "Command:" << i.command << ", arg: " << i.arg << '\n';
+		std::cout << "Command:" << i.cmd << ", arg: " << i.arg << '\n';
 	}
 */
-	aopen(commands);
+	handleCmdChain(commands);
 }
