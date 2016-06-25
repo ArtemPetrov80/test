@@ -21,7 +21,7 @@ struct Command
 
 void execCmd(Command& cmd)
 {
-	std::cout << "execCmd: cmd = " << cmd.cmd << " " << cmd.arg << std::endl;
+//	std::cout << "execCmd: cmd = " << cmd.cmd << " " << cmd.arg << std::endl;
 	if(cmd.arg.empty())
 	{
 		execlp(cmd.cmd.c_str(), cmd.cmd.c_str(), 0);
@@ -45,7 +45,7 @@ void handleCmdChain(std::vector<Command> &cmdChain)
 	{
 		Command comm1 = cmdChain[0];
 		cmdChain.erase(cmdChain.begin());
-		std::cout << "handleCmdChain(), comm1 = " << comm1.cmd << ", arg1 = " << comm1.arg << std::endl;
+//		std::cout << "handleCmdChain(), comm1 = " << comm1.cmd << ", arg1 = " << comm1.arg << std::endl;
 
 		int fd[2];
 			pipe(fd);  /*организован канал*/
@@ -57,13 +57,13 @@ void handleCmdChain(std::vector<Command> &cmdChain)
 		}
 		else if (childID != 0)
 		{
-			std::cout << "PARENT, comm = " << comm1.cmd <<std::endl;
+//			std::cout << "PARENT, comm = " << comm1.cmd <<std::endl;
 
 			dup2(fd[1], 1); /* отождествили стандартный вывод с файловым дескриптором канала, предназначенным для записи */
 			close(fd[1]);   /* закрыли файловый дескриптор канала, предназначенный для записи */
 			close(fd[0]);   /* закрыли файловый дескриптор канала, предназначенный для чтения */
 
-			int endID = waitpid(childID, &status, WNOHANG|WUNTRACED);
+			int endID = waitpid(childID, &status, WUNTRACED);
 			if (endID == -1)
 			{
 				perror("waitpid error");
@@ -80,22 +80,21 @@ void handleCmdChain(std::vector<Command> &cmdChain)
 	}
 	else
 	{
-		int result_file = open(RESULT_PATH, O_RDWR|O_CREAT, 0666);
+		int result_file = creat(RESULT_PATH, /*O_RDWR|O_CREAT,*/ 0666);
 		if(!result_file)
 			exit(0);
 
 		dup2(result_file, 1);
+		close(result_file);
 		Command comm2 = cmdChain[0];
 		cmdChain.erase(cmdChain.begin());
-
 		execCmd(comm2);
-
-		close(result_file);
 	}
 }
 
 int main(int argc, char **argv)
 {
+	remove(RESULT_PATH);
 	std::vector <Command> commands;
 	Command tmp;
 	bool isArg = false;
